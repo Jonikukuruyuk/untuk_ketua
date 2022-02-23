@@ -3,14 +3,16 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\BusinessSetting;
+use App\Models\BusinessSetting;
 use App\ClubPointDetail;
 use App\ClubPoint;
-use App\User;
-use App\Product;
-use App\Wallet;
-use App\Order;
+use App\Models\ClubPointAcumulate;
+use App\Models\User;
+use App\Models\Product;
+use App\Models\Wallet;
+use App\Models\Order;
 use Auth;
+use DB;
 
 class ClubPointController extends Controller
 {
@@ -76,16 +78,20 @@ class ClubPointController extends Controller
 
     public function convert_rate_store(Request $request)
     {
-        $club_point_convert_rate = BusinessSetting::where('type', $request->type)->first();
-        if ($club_point_convert_rate != null) {
-            $club_point_convert_rate->value = $request->value;
+        $cpSetting = json_encode($request->points);
+        $club_point_setting = BusinessSetting::where('type', $request->type)->first();
+        if ($club_point_setting != null) {
+            $club_point_setting->value = $cpSetting;
         }
         else {
-            $club_point_convert_rate = new BusinessSetting;
-            $club_point_convert_rate->type = $request->type;
-            $club_point_convert_rate->value = $request->value;
+            $max_business_setting_id = BusinessSetting::max('id');
+            $club_point_setting = new BusinessSetting;
+            $club_point_setting->id = $max_business_setting_id+1;
+            $club_point_setting->type = $request->type;
+            $club_point_setting->value = $cpSetting;
         }
-        $club_point_convert_rate->save();
+        $club_point_setting->save();
+
         flash(translate('Point convert rate has been updated successfully'))->success();
         return redirect()->route('club_points.configs');
     }
