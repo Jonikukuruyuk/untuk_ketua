@@ -1,7 +1,6 @@
 @extends('backend.layouts.app')
 
 @section('content')
-
     <div class="row">
         <div class="col-lg-12">
             <div class="card">
@@ -10,15 +9,16 @@
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>{{translate('Product Name')}}</th>
-                                <th>{{translate('Points')}}</th>
-                                <th data-breakpoints="lg">{{translate('Earned At')}}</th>
+                                <th>{{ translate('Product Name') }}</th>
+                                <th>{{ translate('Points') }}</th>
+                                <th data-breakpoints="lg">{{ translate('Earned At') }}</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($club_point_details as $key => $club_point)
+                            @foreach ($club_point_details as $key => $club_point)
                                 <tr>
-                                    <td>{{ ($key+1) + ($club_point_details->currentPage() - 1)*$club_point_details->perPage() }}</td>
+                                    <td>{{ $key + 1 + ($club_point_details->currentPage() - 1) * $club_point_details->perPage() }}
+                                    </td>
                                     @if ($club_point->product != null)
                                         <td>{{ $club_point->product->getTranslation('name') }}</td>
                                     @else
@@ -30,6 +30,10 @@
                             @endforeach
                         </tbody>
                     </table>
+                    <div class="form-group mb-3 text-right">
+                        <a href="{{ route('club_points.index') }}"><button type="button"
+                                class="btn btn-sm btn-primary">Back</button></a>
+                    </div>
                     <div class="clearfix">
                         <div class="pull-right">
                             {{ $club_point_details->appends(request()->input())->links() }}
@@ -39,5 +43,4 @@
             </div>
         </div>
     </div>
-
 @endsection
