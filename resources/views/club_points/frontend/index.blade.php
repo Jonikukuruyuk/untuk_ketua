@@ -19,6 +19,10 @@
                             <div class="bg-grad-1 text-white rounded-lg overflow-hidden">
                                 <div class="px-3 pt-3 pb-3">
                                     <div class="h3 fw-700 text-center">My Point = {{ $point }}</div>
+                                    <center>
+                                        <span>Point Anda akan terus terakumulasi sampai maksimal
+                                            {{ env('MAX_POINT') }} Point</span>
+                                    </center>
                                 </div>
                             </div>
                         </div>
@@ -50,8 +54,8 @@
                                             <td>{{ $club_point->point }}</td>
                                             <td class="text-right">
                                                 @if ($club_point->convert == 0)
-                                                    @if ($point > $club_point->point)
-                                                        <button onclick="convert_point({{ $club_point->point }})"
+                                                    @if ($point >= $club_point->point)
+                                                        <button onclick="convert_point({{ $club_point->id }})"
                                                             class="btn btn-sm btn-styled btn-primary">{{ translate('Convert Now') }}</button>
                                                     @endif
                                                 @else

@@ -2,7 +2,7 @@
 @section('content')
     @php
     // $club_point_convert_rate = \App\Models\BusinessSetting::where('type', 'club_point_convert_rate')->first();
-    $club_point_setting = \App\Models\BusinessSetting::where('type', 'club_point_setting')->first();
+    $cps = \App\Models\ClubPointSetting::all();
     @endphp
     <div class="row">
         <div class="col-lg-12">
@@ -34,85 +34,30 @@
                     </form> --}}
                     <form class="form-horizontal" action="{{ route('point_convert_rate_store') }}" method="POST">
                         @csrf
-                        <input type="hidden" name="type" value="club_point_setting">
-                        <fieldset>
-                            <div class="repeater-custom-show-hide">
-                                <div data-repeater-list="points">
-                                    <div class="form-group row mb-0">
-                                        <div class="col-sm-12">
-                                            <span data-repeater-create="" class="btn btn-info btn-md">
-                                                <span class="fa fa-plus"></span> Add Club Point
-                                            </span>
+                        @for ($i = 1; $i <= 8; $i++)
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Hadiah {{ $i }}</label>
+                                                <input type="text" name="hadiah[]"
+                                                    value="{{ $cps->count() > 0 ? $cps[$i - 1]->hadiah : '' }}"
+                                                    class="form-control" required />
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Jumlah Point {{ $i }}</label>
+                                                <input type="number" name="point[]"
+                                                    value="{{ $cps->count() > 0 ? $cps[$i - 1]->point : '' }}"
+                                                    class="form-control" required />
+                                            </div>
                                         </div>
                                     </div>
-                                    <hr>
-                                    @if (is_null($club_point_setting))
-                                        <div data-repeater-item="">
-                                            <div class="row">
-                                                <div class="col-11">
-                                                    <div class="row">
-                                                        <div class="col-md-6">
-                                                            <div class="form-group">
-                                                                <label>Hadiah</label>
-                                                                <input type="text" name="hadiah"
-                                                                    value="{{ old('hadiah') }}" class="form-control"
-                                                                    required />
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-md-6">
-                                                            <div class="form-group">
-                                                                <label>Jumlah Point</label>
-                                                                <input type="number" name="point"
-                                                                    value="{{ old('point') }}" class="form-control"
-                                                                    required />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-sm-1" style="margin: auto;">
-                                                    <span data-repeater-delete="" class="btn btn-danger btn-sm">
-                                                        <i class="las la-trash"></i>
-                                                    </span>
-                                                </div>
-                                                <hr>
-                                            </div>
-                                        </div>
-                                    @else
-                                        @foreach (json_decode($club_point_setting->value) as $cps)
-                                            <div data-repeater-item="">
-                                                <div class="row">
-                                                    <div class="col-11">
-                                                        <div class="row">
-                                                            <div class="col-md-6">
-                                                                <div class="form-group">
-                                                                    <label>Hadiah</label>
-                                                                    <input type="text" name="hadiah"
-                                                                        value="{{ $cps->hadiah }}" class="form-control"
-                                                                        required />
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-md-6">
-                                                                <div class="form-group">
-                                                                    <label>Jumlah Point</label>
-                                                                    <input type="number" name="point"
-                                                                        value="{{ $cps->point }}" class="form-control"
-                                                                        required />
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-sm-1" style="margin: auto;">
-                                                        <span data-repeater-delete="" class="btn btn-danger btn-sm">
-                                                            <i class="las la-trash"></i>
-                                                        </span>
-                                                    </div>
-                                                    <hr>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    @endif
                                 </div>
-                        </fieldset>
+                            </div>
+                        @endfor
                         <div class="form-group mb-3 text-right">
                             <button type="submit" class="btn btn-sm btn-primary">{{ translate('Save') }}</button>
                         </div>

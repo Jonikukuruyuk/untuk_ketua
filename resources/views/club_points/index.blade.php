@@ -9,12 +9,10 @@
                         <thead>
                             <tr>
                                 <th>#</th>
-                                {{-- <th>{{translate('Order Code')}}</th> --}}
                                 <th>{{ translate('Customer Name') }}</th>
-                                <th data-breakpoints="lg">{{ translate('Customer Name') }}</th>
                                 <th>{{ translate('Points') }}</th>
                                 <th data-breakpoints="lg">{{ translate('Convert Status') }}</th>
-                                <th data-breakpoints="lg">{{ translate('Earned At') }}</th>
+                                <th data-breakpoints="lg">Reset Club Point</th>
                                 <th class="text-right" width="10%">{{ translate('Options') }}</th>
                             </tr>
                         </thead>
@@ -26,26 +24,22 @@
                                         @if ($club_point->user != null)
                                             {{ $club_point->user->name }}
                                         @else
-                                            {{ translate('Order not found') }}
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if ($club_point->user != null)
-                                            {{ $club_point->user->name }}
-                                        @else
                                             {{ translate('User not found') }}
                                         @endif
                                     </td>
                                     <td>{{ $club_point->points }}</td>
+                                    <td>{{ $club_point->convert }}</td>
                                     <td>
-                                        @if ($club_point->convert_status == 1)
-                                            <span
-                                                class="badge badge-inline badge-success">{{ translate('Converted') }}</span>
+                                        @if ($club_point->total == 8)
+                                            <a class="btn btn-soft-primary btn-sm"
+                                                href="{{ route('club_point.reset', encrypt($club_point->user_id)) }}"
+                                                title="Reset Point User">
+                                                Reset Point
+                                            </a>
                                         @else
-                                            <span class="badge badge-inline badge-info">{{ translate('Pending') }}</span>
+                                            -
                                         @endif
                                     </td>
-                                    <td>{{ $club_point->created_at }}</td>
                                     <td class="text-right">
                                         <a class="btn btn-soft-primary btn-icon btn-circle btn-sm"
                                             href="{{ route('club_point.details', encrypt($club_point->user_id)) }}"

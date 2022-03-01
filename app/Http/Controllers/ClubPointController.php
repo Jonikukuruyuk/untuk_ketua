@@ -7,6 +7,8 @@ use App\Models\BusinessSetting;
 use App\ClubPointDetail;
 use App\ClubPoint;
 use App\Models\ClubPointAcumulate;
+use App\Models\ClubPointSetting;
+use App\Models\ClubPointUsers;
 use App\Models\User;
 use App\Models\Product;
 use App\Models\Wallet;
@@ -27,23 +29,50 @@ class ClubPointController extends Controller
         $club_points = ClubPoint::select(
             DB::raw('sum(points) as points'),
             'user_id'
-        )->groupBy('user_id')->paginate(15);
+            )->groupBy('user_id')->paginate(15);
+            
+        $club_points_setting = ClubPointSetting::all();
+        
+        foreach ($club_points as $key => $cp) {
+            $club_point_users = ClubPointUsers::select('club_point_setting_id')->where('user_id',$cp->user_id)->get();
+            $cpu = [];
+            $convert = '';
+            
+            foreach($club_point_users as $c){
+                $cpu[] = $c->club_point_setting_id;
+            }
+
+            foreach ($club_points_setting as $key => $cps) {
+                if(in_array($cps->id, $cpu)){
+                    $convert .= $cps->hadiah.", ";
+                }
+            }
+            
+            $cp->convert = substr($convert,0,-2);
+            $cp->total = $club_point_users->count();
+        }
+
         return view('club_points.index', compact('club_points'));
     }
 
     public function userpoint_index()
     {
         // $club_points = ClubPoint::where('user_id', Auth::user()->id)->latest()->paginate(15);
-        $max = 15;
-        $point = ClubPoint::select(DB::raw('sum(points) as points'))->where('user_id', Auth::id())->first()->points;
-        for ($i=$point; $i>$max; $i-=$max) { 
-            $point -= $max;
+        $club_points = ClubPointSetting::all();
+        $cpu = ClubPointUsers::where('user_id',Auth::id())->get();
+        $user_club_point = ClubPoint::select(DB::raw('sum(points) as points'))->where('user_id', Auth::id())->first()->points;
+        $lastPoint = Auth::user()->point;
+        $point = $user_club_point - $lastPoint;
+
+        foreach ($club_points as $key => $cps) {
+            $cps->convert = 0;
+            foreach ($cpu as $c) {
+                if($cps->id == $c->club_point_setting_id){
+                    $cps->convert = 1;
+                }
+            }
         }
-        $club_points = [];
-        $club_points_setting = BusinessSetting::where('type', 'club_point_setting')->first()->value;
-        foreach (json_decode($club_points_setting) as $key => $cp) {
-            $club_points[] = $cp;
-        }
+
         return view('club_points.frontend.index', compact('club_points','point'));
     }
 
@@ -92,33 +121,31 @@ class ClubPointController extends Controller
 
     public function convert_rate_store(Request $request)
     {
-        $cpSetting = [];
-        $club_point_setting = BusinessSetting::where('type', $request->type)->first();
-        if ($club_point_setting != null) {
-            $jsonCs = json_decode($club_point_setting->value);
-            foreach ($request->points as $key => $p) {
-                $p['convert'] = $jsonCs[$key]->convert;
-                $cpSetting[] = $p;
-            }
-            $club_point_setting->value = json_encode($cpSetting);
-        }
-        else {
-            foreach ($request->points as $key => $p) {
-                if(!isset($p['convert'])){
-                    $p['convert'] = 0;
+        $cpsCount = ClubPointSetting::count();
+        try {
+            DB::beginTransaction();
+            if ($cpsCount > 0) {
+                for ($i=1; $i <= 8; $i++) { 
+                    $cps = ClubPointSetting::find($i);
+                    $cps->hadiah = $request->hadiah[$i-1];
+                    $cps->point = $request->point[$i-1];
+                    $cps->save();
                 }
-                $cpSetting[] = $p;
+            } else {
+                for ($i=1; $i <= 8; $i++) { 
+                    $cps = new ClubPointSetting;
+                    $cps->hadiah = $request->hadiah[$i-1];
+                    $cps->point = $request->point[$i-1];
+                    $cps->save();
+                }
             }
-
-            $max_business_setting_id = BusinessSetting::max('id');
-            $club_point_setting = new BusinessSetting;
-            $club_point_setting->id = $max_business_setting_id+1;
-            $club_point_setting->type = $request->type;
-            $club_point_setting->value = json_encode($cpSetting);
+            DB::commit();
+            flash(translate('Point convert rate has been updated successfully'))->success();
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            flash(translate($th->getMessage()))->error();
         }
-        $club_point_setting->save();
 
-        flash(translate('Point convert rate has been updated successfully'))->success();
         return redirect()->route('club_points.configs');
     }
 
@@ -134,11 +161,6 @@ class ClubPointController extends Controller
         $club_point->order_id = $order->id;
         $club_point->convert_status = 0;
         $club_point->save();
-
-        // $club_point_acumulate = new ClubPointAcumulate;
-        // $club_point_acumulate->user_id = $order->user_id;
-        // $club_point_acumulate->points = $total_pts;
-        // $club_point_acumulate->save();
 
         foreach ($order->orderDetails as $key => $orderDetail) {
             $club_point_detail = new ClubPointDetail;
@@ -156,6 +178,23 @@ class ClubPointController extends Controller
             ->where('cp.user_id', decrypt($id))->paginate(12);
         return view('club_points.club_point_details', compact('club_point_details'));
     }
+    
+    public function club_point_reset($id){
+        try {
+            DB::beginTransaction();
+            $user = User::find(decrypt($id));
+            $user->point = $user->point + env('MAX_POINT');
+            if($user->save()){
+                ClubPointUsers::where('user_id', decrypt($id))->delete();
+            }
+            flash(translate('Point convert user has been reset successfully'))->success();
+            DB::commit();
+        } catch (\Throwable $th) {
+            DB::rollback();
+            flash(translate('Point convert user failed'))->error();
+        }
+        return redirect()->route('club_points.index');
+    }
 
     public function convert_point_into_wallet(Request $request)
     {
@@ -167,20 +206,19 @@ class ClubPointController extends Controller
         // $wallet->payment_method = 'Club Point Convert';
         // $wallet->payment_details = 'Club Point Convert';
         // $wallet->save();
-        $cpSetting = [];
-        $club_point = BusinessSetting::where('type', 'club_point_setting')->first();
-        foreach (json_decode($club_point->value) as $key => $cp) {
-            if($cp->point == $request->el){
-                $cp->convert = 1;
-            }
-            $cpSetting[] = $cp;
+        $club_point_users = ClubPointUsers::where('user_id',Auth::id())->where('club_point_setting_id',$request->el)->first();
+
+        if ($club_point_users == null) {
+            $cpu = new ClubPointUsers;
+            $cpu->user_id = Auth::id();
+            $cpu->club_point_setting_id = $request->el;
+            $cpu->save();
         }
 
         // $user = Auth::user();
         // $user->balance = $user->balance + floatval($club_point->points / $club_point_convert_rate);
         // $user->save();
-        $club_point->value = json_encode($cpSetting);
-        if ($club_point->save()) {
+        if ($cpu->save()) {
             return 1;
         }
         else {
